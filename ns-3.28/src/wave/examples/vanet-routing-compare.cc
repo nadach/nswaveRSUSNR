@@ -18,7 +18,7 @@
  * Author: Scott E. Carpenter <scarpen@ncsu.edu>
  *
  */
-
+ 
 /*
  * This example program allows one to run vehicular ad hoc
  * network (VANET) simulation scenarios in ns-3 to assess
@@ -634,6 +634,7 @@ void
 RoutingHelper::SetupRoutingMessages (NodeContainer & c,
                                      Ipv4InterfaceContainer & adhocTxInterfaces)
 {
+  // create the applications ON/OFF application is our case
   // Setup routing transmissions
   OnOffHelper onoff1 ("ns3::UdpSocketFactory",Address ());
   onoff1.SetAttribute ("OnTime", StringValue ("ns3::ConstantRandomVariable[Constant=1.0]"));
@@ -2159,6 +2160,7 @@ VanetRoutingExperiment::SetupAdhocMobilityNodes ()
       ssSpeed << "ns3::UniformRandomVariable[Min=0.0|Max=" << m_nodeSpeed << "]";
       std::stringstream ssPause;
       ssPause << "ns3::ConstantRandomVariable[Constant=" << m_nodePause << "]";
+
       mobilityAdhoc.SetMobilityModel ("ns3::RandomWaypointMobilityModel",
                                       "Speed", StringValue (ssSpeed.str ()),
                                       "Pause", StringValue (ssPause.str ()),
@@ -2169,6 +2171,33 @@ VanetRoutingExperiment::SetupAdhocMobilityNodes ()
 
       // initially assume all nodes are moving
       WaveBsmHelper::GetNodesMoving ().resize (m_nNodes, 1);
+    }
+  else if (m_mobility == 3)
+    {
+      // here I need to add the static mobility model (grid)
+      MobilityHelper mobilityAdhoc;
+      // setup the grid itself: objects are layed out
+      // started from (-100,-100) with 20 objects per row, 
+      // the x interval between each object is 5 meters
+      // and the y interval between each object is 20 meters
+      mobilityAdhoc.SetPositionAllocator ("ns3::GridPositionAllocator",
+                                 "MinX", DoubleValue (-200.0),
+                                 "MinY", DoubleValue (-200.0),
+                                 "DeltaX", DoubleValue (5.0),
+                                 "DeltaY", DoubleValue (20.0),
+                                 "GridWidth", UintegerValue (20),
+                                 "LayoutType", StringValue ("RowFirst"));
+
+      // each object will be attached a static position.
+      // i.e., once set by the "position allocator", the
+      // position will never change.
+      mobilityAdhoc.SetMobilityModel ("ns3::ConstantPositionMobilityModel");
+
+      // finalize the setup by attaching to each object
+      // in the input array a position and initializing
+      // this position with the calculated coordinates.
+      mobilityAdhoc.Install (m_adhocTxNodes);
+
     }
 
   // Configure callback for logging
@@ -2398,6 +2427,21 @@ VanetRoutingExperiment::SetupScenario ()
       m_nodePause = 0;
       m_CSVfileName = "low_vanet-routing-compare.csv";
       m_CSVfileName = "low_vanet-routing-compare2.csv";
+    }
+  else if (m_scenario == 3)
+    {
+      // 40 nodes in RWP 300 m x 1500 m synthetic highway, 10s
+      m_traceFile = "";
+      m_logFile = "";
+      m_mobility = 3;
+      if (m_nNodes == 100)
+        {
+          m_nNodes = 40;
+        }
+      if (m_TotalSimTime == 300.01)
+        {
+          m_TotalSimTime = 10.0;
+        }
     }
 }
 

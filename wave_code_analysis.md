@@ -24,7 +24,7 @@ Several items can be output:
 * ASCII trace file
 * PCAP trace files for each node
 
-Simulation scenarios can be defined and configuration settings can be saved using config-store (raw text) which can they be replayed again.  This is an easy way to define and save the settings for a scenario, and then re-execute the same scenario exactly, or to set up several different simulation scenarios. For example, to set up a scenario and save the configuration as "scenario1.txt":
+Simulation scenarios can be defined and configuration settings can be saved using config-store (raw text) which can they be replayed again. This is an easy way to define and save the settings for a scenario, and then re-execute the same scenario exactly, or to set up several different simulation scenarios. For example, to set up a scenario and save the configuration as "scenario1.txt":
 
 ```sh
 ./waf --run "vanet-routing-compare --scenario=1 --saveconfig=scenario1.txt"
@@ -47,9 +47,350 @@ main()
         |            +--has_a--RoutingStats
         +--has_a-- WifiPhyStats
 
+## class : WifiApp
+
+This function defines the main methods that should be present or redined in `VanetRoutingExperiment`. All the methods are empty except the method `Simulate` in order to run the simulation. The main methods that should be declared are:
+
+```cpp
+class WifiApp
+{
+public:
+  WifiApp (); // Constructor
+  virtual ~WifiApp (); //Destructor
+  /**
+   * \brief Enacts simulation of an ns-3 wifi application
+   * \param argc program arguments count
+   * \param argv program arguments
+   * \return none
+   */
+  void Simulate (int argc, char **argv);
+
+protected:
+  /**
+   * \brief Sets default attribute values
+   * \return none
+   */
+  virtual void SetDefaultAttributeValues ();
+  /**
+   * \brief Process command line arguments
+   * \param argc program arguments count
+   * \param argv program arguments
+   * \return none
+   */
+  virtual void ParseCommandLineArguments (int argc, char **argv);
+  /**
+   * \brief Configure nodes
+   * \return none
+   */
+  virtual void ConfigureNodes ();
+  /**
+   * \brief Configure channels
+   * \return none
+   */
+  virtual void ConfigureChannels ();
+  /**
+   * \brief Configure devices
+   * \return none
+   */
+  virtual void ConfigureDevices ();
+  /**
+   * \brief Configure mobility
+   * \return none
+   */
+  virtual void ConfigureMobility ();
+  /**
+   * \brief Configure applications
+   * \return none
+   */
+  virtual void ConfigureApplications ();
+  /**
+   * \brief Configure tracing
+   * \return none
+   */
+  virtual void ConfigureTracing ();
+  /**
+   * \brief Run the simulation
+   * \return none
+   */
+  virtual void RunSimulation ();
+  /**
+   * \brief Process outputs
+   * \return none
+   */
+  virtual void ProcessOutputs ();
+};
+```
+
+As introduced earlier all the methods are empty except the method `Simulate()`. The main idea is to describe in what order the simulation should be run. As following:
+
+```cpp
+void WifiApp::Simulate (int argc, char **argv)
+{
+  SetDefaultAttributeValues ();
+  ParseCommandLineArguments (argc, argv);
+  /*
+   * Create the nodes
+   */
+  ConfigureNodes (); 
+  /*
+   * Call the SetupAdhocDevices and 
+   * intilize the lossModel (m_lossModel)
+   * and the MAC layer.
+   * In fact all the configuration of the 
+   * devices is done within this method
+   */
+  ConfigureChannels (); 
+  /*
+   * Add only callbacks for tracing. 
+   * Not all callbakcs are working.
+   * For example the TxDrop, RxDrop 
+   * are not working yet.
+   */
+  ConfigureDevices ();
+  /*
+   * Call the method SetupAdhocMobilityNodes.
+   * 
+   */
+  ConfigureMobility ();
+  /*
+   * Set SetupRoutingMessages and SetupWaveMessages 
+   */
+  ConfigureApplications ();
+  ConfigureTracing ();
+  RunSimulation ();
+  ProcessOutputs ();
+}
+```
+
+
+
 ## class : VanetRoutingExperiment
 
-This class implements a wifi app that allows VANET routing experiments to be simulated
+This class implements a wifi app `WifiApp` that allows VANET routing experiments to be simulated. The main functions are:
+
+* **Question** Why declare again the methods inherited from WifiApp? 
+
+```cpp
+class VanetRoutingExperiment : public WifiApp
+{
+public:
+  /**
+   * \brief Sets default attribute values
+   * \return none
+   * In fact this function do nothing since all defaults attributes values are hanfled in the constructor...
+   */
+  virtual void SetDefaultAttributeValues (); 
+  /**
+   * \brief Process command line arguments
+   * \param argc program arguments count
+   * \param argv program arguments
+   * \return none
+   * This function call the function CommandSetup and SetupScenario in order to get all the command line arguments...
+   */
+  virtual void ParseCommandLineArguments (int argc, char **argv);
+  /**
+   * \brief Configure nodes
+   * \return none
+   */
+  virtual void ConfigureNodes ();
+  /**
+   * \brief Configure channels
+   * \return none
+   */
+  virtual void ConfigureChannels ();
+  /**
+   * \brief Configure devices
+   * \return none
+   */
+  virtual void ConfigureDevices ();
+  /**
+   * \brief Configure mobility
+   * \return none
+   */
+  virtual void ConfigureMobility ();
+  /**
+   * \brief Configure applications
+   * \return none
+   */
+  virtual void ConfigureApplications ();
+  /**
+   * \brief Configure tracing
+   * \return none
+   */
+  virtual void ConfigureTracing ();
+  /**
+   * \brief Run the simulation
+   * \return none
+   */
+  virtual void RunSimulation (); 
+  /**
+   * \brief Process outputs
+   * \return none
+   */
+  virtual void ProcessOutputs (); // ===> All the methods declared until now are inherited from WifiApp... 
+  /**
+   * \brief Run the simulation
+   * \return none
+   */
+  void Run (); // What is the difference between RunSimulation() and Run() ???
+  /**
+   * \brief Run the simulation
+   * \param argc command line argument count
+   * \param argv command line parameters
+   * \return none
+   */
+  void CommandSetup (int argc, char **argv);
+  /**
+   * \brief Checks the throughput and outputs summary to CSV file1.
+   * This is scheduled and called once per second
+   * \return none
+   */
+  void CheckThroughput ();
+
+  /**
+   * \brief Set up log file
+   * \return none
+   */
+  void SetupLogFile ();
+
+  /**
+   * \brief Set up logging
+   * \return none
+   */
+  void SetupLogging ();
+
+  /**
+   * \brief Configure default attributes
+   * \return none
+   */
+  void ConfigureDefaults ();
+
+  /**
+   * \brief Set up the adhoc mobility nodes
+   * \return none
+   */
+  void SetupAdhocMobilityNodes ();
+
+  /**
+   * \brief Set up the adhoc devices
+   * \return none
+   */
+  void SetupAdhocDevices ();
+
+  /**
+   * \brief Set up generation of IEEE 1609 WAVE messages,
+   * as a Basic Safety Message (BSM).  The BSM is typically
+   * a ~200-byte packets broadcast by all vehicles at a nominal
+   * rate of 10 Hz
+   * \return none
+   */
+  void SetupWaveMessages ();
+
+  /**
+   * \brief Set up generation of packets to be routed
+   * through the vehicular network
+   * \return none
+   */
+  void SetupRoutingMessages ();
+
+  /**
+   * \brief Set up a prescribed scenario
+   * \return none
+   */
+  void SetupScenario ();
+
+  /**
+   * \brief Write the header line to the CSV file1
+   * \return none
+   */
+  void WriteCsvHeader ();
+
+  /**
+   * \brief Set up configuration parameter from the global variables
+   * \return none
+   */
+  void SetConfigFromGlobals ();
+
+  /**
+   * \brief Set up the global variables from the configuration parameters
+   * \return none
+   */
+  void SetGlobalsFromConfig ();
+
+  /**
+   * Course change function
+   * \param os the output stream
+   * \param context trace source context (unused)
+   * \param mobility the mobility model
+   */
+  static void
+  CourseChange (std::ostream *os, std::string context, Ptr<const MobilityModel> mobility);
+
+  uint32_t m_port; ///< port
+  std::string m_CSVfileName; ///< CSV file name
+  std::string m_CSVfileName2; ///< CSV file name
+  uint32_t m_nSinks; ///< number of sinks
+  std::string m_protocolName; ///< protocol name
+  double m_txp; ///< distance
+  bool m_traceMobility; ///< trace mobility
+  uint32_t m_protocol; ///< protocol
+
+  uint32_t m_lossModel; ///< loss model
+  uint32_t m_fading; ///< fading
+  std::string m_lossModelName; ///< loss model name
+
+  std::string m_phyMode; ///< phy mode
+  uint32_t m_80211mode; ///< 80211 mode
+
+  std::string m_traceFile; ///< trace file 
+  std::string m_logFile; ///< log file
+  uint32_t m_mobility; ///< mobility
+  uint32_t m_nNodes; ///< number of nodes
+  double m_TotalSimTime; ///< total sim time
+  std::string m_rate; ///< rate
+  std::string m_phyModeB; ///< phy mode
+  std::string m_trName; ///< trace file name
+  int m_nodeSpeed; ///< in m/s
+  int m_nodePause; ///< in s
+  uint32_t m_wavePacketSize; ///< bytes
+  double m_waveInterval; ///< seconds
+  int m_verbose; ///< verbose
+  std::ofstream m_os; ///< output stream
+  NetDeviceContainer m_adhocTxDevices; ///< adhoc transmit devices
+  Ipv4InterfaceContainer m_adhocTxInterfaces; ///< adhoc transmit interfaces
+  uint32_t m_scenario; ///< scenario
+  double m_gpsAccuracyNs; ///< GPS accuracy
+  double m_txMaxDelayMs; ///< transmit maximum delay
+  int m_routingTables; ///< routing tables
+  int m_asciiTrace; ///< ascii trace
+  int m_pcap; ///< PCAP
+  std::string m_loadConfigFilename; ///< load config file name
+  std::string m_saveConfigFilename; ///< save configi file name
+
+  WaveBsmHelper m_waveBsmHelper; ///< helper
+  Ptr<RoutingHelper> m_routingHelper; ///< routing helper
+  Ptr<WifiPhyStats> m_wifiPhyStats; ///< wifi phy statistics
+  int m_log; ///< log
+  /// used to get consistent random numbers across scenarios
+  int64_t m_streamIndex;
+  NodeContainer m_adhocTxNodes; ///< adhoc transmit nodes --> Nodes
+  double m_txSafetyRange1; ///< range 1
+  double m_txSafetyRange2; ///< range 2
+  double m_txSafetyRange3; ///< range 3
+  double m_txSafetyRange4; ///< range 4
+  double m_txSafetyRange5; ///< range 5
+  double m_txSafetyRange6; ///< range 6
+  double m_txSafetyRange7; ///< range 7
+  double m_txSafetyRange8; ///< range 8
+  double m_txSafetyRange9; ///< range 9
+  double m_txSafetyRange10; ///< range 10
+  std::vector <double> m_txSafetyRanges; ///< list of ranges
+  std::string m_exp; ///< exp
+  int m_cumulativeBsmCaptureStart; ///< capture start
+};
+
+```
+
 
 ## class: RoutingHelper
 
