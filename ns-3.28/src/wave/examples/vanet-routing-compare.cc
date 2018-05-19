@@ -637,8 +637,8 @@ RoutingHelper::SetupRoutingMessages (NodeContainer & c,
   // create the applications ON/OFF application is our case
   // Setup routing transmissions
   OnOffHelper onoff1 ("ns3::UdpSocketFactory",Address ());
-  onoff1.SetAttribute ("OnTime", StringValue ("ns3::ConstantRandomVariable[Constant=1.0]"));
-  onoff1.SetAttribute ("OffTime", StringValue ("ns3::ConstantRandomVariable[Constant=0.0]"));
+  onoff1.SetAttribute ("OnTime", StringValue ("ns3::ConstantRandomVariable[Constant=0.0]"));
+  onoff1.SetAttribute ("OffTime", StringValue ("ns3::ConstantRandomVariable[Constant=1.0]"));
 
   Ptr<UniformRandomVariable> var = CreateObject<UniformRandomVariable> ();
   int64_t stream = 2;
@@ -2174,29 +2174,43 @@ VanetRoutingExperiment::SetupAdhocMobilityNodes ()
     }
   else if (m_mobility == 3)
     {
-      // here I need to add the static mobility model (grid)
       MobilityHelper mobilityAdhoc;
-      // setup the grid itself: objects are layed out
-      // started from (-100,-100) with 20 objects per row, 
-      // the x interval between each object is 5 meters
-      // and the y interval between each object is 20 meters
-      mobilityAdhoc.SetPositionAllocator ("ns3::GridPositionAllocator",
-                                 "MinX", DoubleValue (-200.0),
-                                 "MinY", DoubleValue (-200.0),
-                                 "DeltaX", DoubleValue (5.0),
-                                 "DeltaY", DoubleValue (20.0),
-                                 "GridWidth", UintegerValue (20),
-                                 "LayoutType", StringValue ("RowFirst"));
 
-      // each object will be attached a static position.
-      // i.e., once set by the "position allocator", the
-      // position will never change.
+      // set a grid
+      mobilityAdhoc.SetPositionAllocator ("ns3::GridPositionAllocator", 
+                                     "MinX", DoubleValue (0.0), 
+                                     "MinY", DoubleValue (0.0), 
+                                     "DeltaX", DoubleValue (5), 
+                                     "DeltaY", DoubleValue (5), 
+                                     "GridWidth", UintegerValue (3),
+                                     "LayoutType", StringValue ("RowFirst"));
+      // set a constant positions (no mobility)
       mobilityAdhoc.SetMobilityModel ("ns3::ConstantPositionMobilityModel");
 
-      // finalize the setup by attaching to each object
-      // in the input array a position and initializing
-      // this position with the calculated coordinates.
+      // 
       mobilityAdhoc.Install (m_adhocTxNodes);
+      mobilityAdhoc.AssignStreams (m_adhocTxNodes, 0);
+      m_streamIndex += mobilityAdhoc.AssignStreams (m_adhocTxNodes, m_streamIndex);
+
+
+      // add a method tp print the node positions.... using the code bellow... Nadjib
+       for (NodeContainer::Iterator i = m_adhocTxNodes.Begin (); i != m_adhocTxNodes.End (); ++i) 
+       { 
+        Ptr<Node> node = *i; 
+        std::string name = Names::FindName (node); // Assume that nodes  are named, remove this line otherwise 
+        Ptr<MobilityModel> mob = node->GetObject<MobilityModel> (); 
+        if (! mob) continue; // Strange -- node has no mobility model  installed. Skip. 
+        Vector pos = mob->GetPosition (); 
+        std::cout << "Node " << node->GetId() << " " 
+                  << node->GetDevice(0)->GetAddress() << " "
+                  << " "
+                  << " is at (" << pos.x << ", " << pos.y << ", " << pos.z << ")\n"; 
+    } 
+
+
+
+      // initially assume all nodes are moving
+      WaveBsmHelper::GetNodesMoving ().resize (m_nNodes, 1);
 
     }
 
@@ -2431,16 +2445,16 @@ VanetRoutingExperiment::SetupScenario ()
   else if (m_scenario == 3)
     {
       // 40 nodes in RWP 300 m x 1500 m synthetic highway, 10s
+      m_protocol = 0;
       m_traceFile = "";
       m_logFile = "";
       m_mobility = 3;
-      if (m_nNodes == 100)
-        {
-          m_nNodes = 40;
-        }
+      m_pcap = 0;         // no pcap traces
+      m_asciiTrace = 1;   // yes .tr file
+      m_nNodes = 40;      // number of nodes
       if (m_TotalSimTime == 300.01)
         {
-          m_TotalSimTime = 10.0;
+          m_TotalSimTime = 5.0;
         }
     }
 }

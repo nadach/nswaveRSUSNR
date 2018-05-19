@@ -1,3 +1,10 @@
+# my scenario
+
+1. static nodes
+  * I need to give the exact positions of the nodes. 
+2. 
+
+
 # WAVE Examples
 
 This example program allows one to run vehicular ad hoc network (VANET) simulation scenarios in ns-3 to assess performance by evaluating different 802.11p MAC/PHY characteristics, propagation loss models (e.g. Friss, Two-Ray Ground, or ITU R-P.1411), and application traffic (e.g. Basic Safety Message) and/or routing traffic (e.g. DSDV, AODV, OLSR, or DSR) under either a synthetic highway scenario (i.e. a random waypoint mobility model) or by playing back mobility trace files (i.e. ns-2 movement files).
