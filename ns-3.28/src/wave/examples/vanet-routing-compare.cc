@@ -1242,16 +1242,25 @@ private:
    */
   void SetGlobalsFromConfig ();
 
+  
+  /**
+   * print the node positions
+   * 
+   */
+  void PrintNodesPositions();
+
   /**
    * Course change function
    * \param os the output stream
    * \param context trace source context (unused)
    * \param mobility the mobility model
    */
+  
   static void
   CourseChange (std::ostream *os, std::string context, Ptr<const MobilityModel> mobility);
 
   uint32_t m_port; ///< port
+  std::string m_nodesINFOfileName; ///< txt file name
   std::string m_CSVfileName; ///< CSV file name
   std::string m_CSVfileName2; ///< CSV file name
   uint32_t m_nSinks; ///< number of sinks
@@ -1316,6 +1325,7 @@ private:
 
 VanetRoutingExperiment::VanetRoutingExperiment ()
   : m_port (9),
+    m_nodesINFOfileName ("vanet-routing.output.txt"),
     m_CSVfileName ("vanet-routing.output.csv"),
     m_CSVfileName2 ("vanet-routing.output2.csv"),
     m_nSinks (10),
@@ -1521,10 +1531,19 @@ static ns3::GlobalValue g_txMaxDelayMs ("VRCtxMaxDelayMs",
                                         "Tx May Delay (ms)",
                                         ns3::DoubleValue (10),
                                         ns3::MakeDoubleChecker<double> ());
+
+// add a new output file
+static ns3::GlobalValue g_nodesINFOfileName ("nodesINFOfileName",
+                                       "POS filename (for informations on the nodes @/positions/...)",
+                                       ns3::StringValue ("vanet-routing.output.info"),
+                                       ns3::MakeStringChecker ());
+
+
 static ns3::GlobalValue g_CSVfileName ("VRCCSVfileName",
                                        "CSV filename (for time series data)",
                                        ns3::StringValue ("vanet-routing.output.csv"),
                                        ns3::MakeStringChecker ());
+
 static ns3::GlobalValue g_CSVfileName2 ("VRCCSVfileName2",
                                         "CSV filename 2 (for overall simulation scenario results)",
                                         ns3::StringValue ("vanet-routing.output2.csv"),
@@ -1931,6 +1950,10 @@ VanetRoutingExperiment::SetConfigFromGlobals ()
   GlobalValue::GetValueByName ("VRCtxMaxDelayMs", doubleValue);
   m_txMaxDelayMs = doubleValue.Get ();
 
+  // global variables for nodes infos
+  GlobalValue::GetValueByName ("nodesINFOfileName", stringValue);
+  m_nodesINFOfileName = stringValue.Get ();
+
   GlobalValue::GetValueByName ("VRCCSVfileName", stringValue);
   m_CSVfileName = stringValue.Get ();
   GlobalValue::GetValueByName ("VRCCSVfileName2", stringValue);
@@ -1992,6 +2015,7 @@ VanetRoutingExperiment::SetGlobalsFromConfig ()
   g_gpsAccuracyNs.SetValue (DoubleValue (m_gpsAccuracyNs));
   g_txMaxDelayMs.SetValue (DoubleValue (m_txMaxDelayMs));
 
+  g_nodesINFOfileName.SetValue (StringValue (m_nodesINFOfileName));
   g_CSVfileName.SetValue (StringValue (m_CSVfileName));
   g_CSVfileName2.SetValue (StringValue (m_CSVfileName2));
   g_phyMode.SetValue (StringValue (m_phyMode));
@@ -2002,6 +2026,32 @@ VanetRoutingExperiment::SetGlobalsFromConfig ()
   g_trName.SetValue (StringValue (m_trName));
   GlobalValue::GetValueByName ("VRCtrName", stringValue);
   m_trName = stringValue.Get ();
+}
+
+void 
+VanetRoutingExperiment::PrintNodesPositions() {
+
+  std::ofstream myfile;
+  myfile.open (m_nodesINFOfileName.c_str(), std::ofstream::out | std::ofstream::app); 
+  // add a method tp print the node positions.... using the code bellow... Nadjib
+  for (NodeContainer::Iterator i = m_adhocTxNodes.Begin (); i != m_adhocTxNodes.End (); ++i) 
+    { 
+    Ptr<Node> node = *i;
+    
+    //Ptr<Ipv4> ipv4 = node->GetObject<Ipv4> (); 
+    //Ipv4InterfaceAddress iaddr = ipv4->GetAddress (0,0);  
+    //Ipv4Address ipAddr = iaddr.GetLocal (); 
+
+    //std::string name = Names::FindName (node); // Assume that nodes  are named, remove this line otherwise 
+    Ptr<MobilityModel> mob = node->GetObject<MobilityModel> (); 
+    if (! mob) continue; // Strange -- node has no mobility model  installed. Skip. 
+    Vector pos = mob->GetPosition (); 
+    myfile << "Node;" << node->GetId() << ";@MAC;" 
+              << node->GetDevice(0)->GetAddress()
+              << ";is@:" << pos.x << "," << pos.y << "," << pos.z << "\n";
+    }
+    myfile.close();
+
 }
 
 void
@@ -2020,6 +2070,7 @@ VanetRoutingExperiment::CommandSetup (int argc, char **argv)
   double txDist10 = 350.0;
 
   // allow command line overrides
+  cmd.AddValue ("nodesINFOfileName", "The name of the INFO output file name", m_nodesINFOfileName);
   cmd.AddValue ("CSVfileName", "The name of the CSV output file name", m_CSVfileName);
   cmd.AddValue ("CSVfileName2", "The name of the CSV output file name2", m_CSVfileName2);
   cmd.AddValue ("totaltime", "Simulation end time", m_TotalSimTime);
@@ -2184,30 +2235,17 @@ VanetRoutingExperiment::SetupAdhocMobilityNodes ()
                                      "DeltaY", DoubleValue (5), 
                                      "GridWidth", UintegerValue (3),
                                      "LayoutType", StringValue ("RowFirst"));
+      
       // set a constant positions (no mobility)
       mobilityAdhoc.SetMobilityModel ("ns3::ConstantPositionMobilityModel");
 
-      // 
+      // install the mobility
       mobilityAdhoc.Install (m_adhocTxNodes);
       mobilityAdhoc.AssignStreams (m_adhocTxNodes, 0);
       m_streamIndex += mobilityAdhoc.AssignStreams (m_adhocTxNodes, m_streamIndex);
 
-
-      // add a method tp print the node positions.... using the code bellow... Nadjib
-       for (NodeContainer::Iterator i = m_adhocTxNodes.Begin (); i != m_adhocTxNodes.End (); ++i) 
-       { 
-        Ptr<Node> node = *i; 
-        std::string name = Names::FindName (node); // Assume that nodes  are named, remove this line otherwise 
-        Ptr<MobilityModel> mob = node->GetObject<MobilityModel> (); 
-        if (! mob) continue; // Strange -- node has no mobility model  installed. Skip. 
-        Vector pos = mob->GetPosition (); 
-        std::cout << "Node " << node->GetId() << " " 
-                  << node->GetDevice(0)->GetAddress() << " "
-                  << " "
-                  << " is at (" << pos.x << ", " << pos.y << ", " << pos.z << ")\n"; 
-    } 
-
-
+      // print the node positions
+      PrintNodesPositions();
 
       // initially assume all nodes are moving
       WaveBsmHelper::GetNodesMoving ().resize (m_nNodes, 1);
