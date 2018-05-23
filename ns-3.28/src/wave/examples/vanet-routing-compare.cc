@@ -2492,7 +2492,7 @@ VanetRoutingExperiment::SetupScenario ()
       m_nNodes = 40;      // number of nodes
       if (m_TotalSimTime == 300.01)
         {
-          m_TotalSimTime = 5.0;
+          m_TotalSimTime = 15.0;
         }
     }
 }

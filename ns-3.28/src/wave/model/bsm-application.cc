@@ -242,6 +242,9 @@ BsmApplication::GenerateWaveTraffic (Ptr<Socket> socket, uint32_t pktSize,
       if (senderMoving != 0)
         {
           // send it!
+          // Questions Nadjib ==> 
+          // 1. How to add a short payload to the packet?
+          // 2. How to get the neightboor nodes?
           socket->Send (Create<Packet> (pktSize));
           // count it
           m_waveBsmStats->IncTxPktCount ();
@@ -258,6 +261,7 @@ BsmApplication::GenerateWaveTraffic (Ptr<Socket> socket, uint32_t pktSize,
           for (int i = 0; i < nRxNodes; i++)
             {
               Ptr<Node> rxNode = GetNode (i);
+              //std::cout << rxNode->GetId () << "\n";
               int rxNodeId = rxNode->GetId ();
 
               if (rxNodeId != txNodeId)
