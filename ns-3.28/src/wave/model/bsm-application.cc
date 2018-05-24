@@ -243,12 +243,21 @@ BsmApplication::GenerateWaveTraffic (Ptr<Socket> socket, uint32_t pktSize,
         {
           // send it!
           // Questions Nadjib ==> 
-          // 1. How to add a short payload to the packet?
+          // 1. How to add a short payload to the packet? DONE
           // 2. How to get the neightboor nodes?
-          socket->Send (Create<Packet> (pktSize));
+          //std::ostringstream msg; 
+          //msg << "Hello World!" << '\0';
+          //uint32_t packetSize = msg.str().length()+1;
+          //Ptr<Packet> packet = Create<Packet>((uint8_t*) msg.str().c_str(), pktSize);
+          Ptr<Packet> packet = Create<Packet>(reinterpret_cast<const uint8_t*> ("hello"), pktSize+5);
+          socket->Send (packet);
+
+          //socket->Send (Create<Packet> (pktSize));
           // count it
           m_waveBsmStats->IncTxPktCount ();
-          m_waveBsmStats->IncTxByteCount (pktSize);
+          m_waveBsmStats->IncTxByteCount (pktSize+5);
+
+          //m_waveBsmStats->IncTxByteCount (pktSize);
           int wavePktsSent = m_waveBsmStats->GetTxPktCount ();
           if ((m_waveBsmStats->GetLogging () != 0) && ((wavePktsSent % 1000) == 0))
             {

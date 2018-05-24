@@ -19,6 +19,7 @@
 *.output.txt
 *.output.info
 *.output.dat
+*.csv
 [D|U]l[A-Z][a-z]*Stats.txt
 seventh-packet-byte-count.png
 

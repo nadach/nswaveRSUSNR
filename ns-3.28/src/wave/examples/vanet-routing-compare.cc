@@ -2487,12 +2487,12 @@ VanetRoutingExperiment::SetupScenario ()
       m_traceFile = "";
       m_logFile = "";
       m_mobility = 3;
-      m_pcap = 0;         // no pcap traces
+      m_pcap = 1;         // no pcap traces
       m_asciiTrace = 1;   // yes .tr file
       m_nNodes = 40;      // number of nodes
       if (m_TotalSimTime == 300.01)
         {
-          m_TotalSimTime = 15.0;
+          m_TotalSimTime = 5.0;
         }
     }
 }
