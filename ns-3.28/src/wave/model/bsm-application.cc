@@ -229,6 +229,8 @@ BsmApplication::GenerateWaveTraffic (Ptr<Socket> socket, uint32_t pktSize,
   // more packets to send?
   if (pktCount > 0)
     {
+
+
       // for now, we cannot tell if each node has
       // started mobility.  so, as an optimization
       // only send if  this node is moving
@@ -241,21 +243,41 @@ BsmApplication::GenerateWaveTraffic (Ptr<Socket> socket, uint32_t pktSize,
       int senderMoving = m_nodesMoving->at (txNodeId);
       if (senderMoving != 0)
         {
-          // send it!
+          //
+          std::ostringstream msg; 
+          msg << "nodes[" << txNodeId << "]:";
+          // STEP 1: find the number of nodes that can be detected by the embaded sensors (radar/lidar/camera/...)
+          int nRxNodes = m_adhocTxInterfaces->GetN ();
+          for (int i = 0; i < nRxNodes; i++)
+            {
+              Ptr<Node> rxNode = GetNode (i);
+              int rxNodeId = rxNode->GetId ();
+              if (rxNodeId != txNodeId)
+                {
+                  double distSq = MobilityHelper::GetDistanceSquaredBetween (txNode, rxNode);
+                  //std::cout << "TX:"<< txNode->GetId () << "RX:" << rxNode->GetId () << "==>" << distSq << "\n";
+
+                  if (distSq <= 30)
+                  {
+                    msg << msg.str().c_str() << rxNodeId << ";";
+                    //std::cout << "==> " << rxNodeId << "\n";
+                  }
+                }
+            }
+          std::cout << msg.str().c_str() << "\n";
+           
+          // STEP 2: send it!
           // Questions Nadjib ==> 
           // 1. How to add a short payload to the packet? DONE
           // 2. How to get the neightboor nodes?
-          //std::ostringstream msg; 
-          //msg << "Hello World!" << '\0';
-          //uint32_t packetSize = msg.str().length()+1;
-          //Ptr<Packet> packet = Create<Packet>((uint8_t*) msg.str().c_str(), pktSize);
-          Ptr<Packet> packet = Create<Packet>(reinterpret_cast<const uint8_t*> ("hello"), pktSize+5);
-          socket->Send (packet);
+          
+          //Ptr<Packet> packet = Create<Packet>(reinterpret_cast<const uint8_t*> (msg.str().c_str()), pktSize+msg.str().length());
+          //socket->Send (packet);
 
-          //socket->Send (Create<Packet> (pktSize));
+          socket->Send (Create<Packet> (pktSize));
           // count it
           m_waveBsmStats->IncTxPktCount ();
-          m_waveBsmStats->IncTxByteCount (pktSize+5);
+          m_waveBsmStats->IncTxByteCount (pktSize+msg.str().length());
 
           //m_waveBsmStats->IncTxByteCount (pktSize);
           int wavePktsSent = m_waveBsmStats->GetTxPktCount ();
@@ -266,7 +288,7 @@ BsmApplication::GenerateWaveTraffic (Ptr<Socket> socket, uint32_t pktSize,
 
           // find other nodes within range that would be
           // expected to receive this broadbast
-          int nRxNodes = m_adhocTxInterfaces->GetN ();
+          //nRxNodes = m_adhocTxInterfaces->GetN ();
           for (int i = 0; i < nRxNodes; i++)
             {
               Ptr<Node> rxNode = GetNode (i);
