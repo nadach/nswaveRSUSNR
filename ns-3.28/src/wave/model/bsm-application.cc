@@ -259,7 +259,7 @@ BsmApplication::GenerateWaveTraffic (Ptr<Socket> socket, uint32_t pktSize,
 
                   if (distSq <= 30)
                   {
-                    msg << msg.str().c_str() << rxNodeId << ";";
+                    msg << rxNodeId << ";";
                     //std::cout << "==> " << rxNodeId << "\n";
                   }
                 }

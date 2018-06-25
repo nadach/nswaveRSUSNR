@@ -1572,6 +1572,8 @@ protected:
 
   EventId m_endRxEvent;                //!< the end reeive event
   EventId m_endPlcpRxEvent;            //!< the end PLCP receive event
+  bool verbose = true;
+
 
 private:
   /**

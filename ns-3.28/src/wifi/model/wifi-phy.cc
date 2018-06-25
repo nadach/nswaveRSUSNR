@@ -170,14 +170,14 @@ WifiPhy::GetTypeId (void)
     .AddAttribute ("EnergyDetectionThreshold",
                    "The energy of a received signal should be higher than "
                    "this threshold (dbm) to allow the PHY layer to detect the signal.",
-                   DoubleValue (-96.0),
+                   DoubleValue (-99.0), // Old value -> DoubleValue (-96.0),
                    MakeDoubleAccessor (&WifiPhy::SetEdThreshold,
                                        &WifiPhy::GetEdThreshold),
                    MakeDoubleChecker<double> ())
     .AddAttribute ("CcaMode1Threshold",
                    "The energy of a received signal should be higher than "
                    "this threshold (dbm) to allow the PHY layer to declare CCA BUSY state.",
-                   DoubleValue (-99.0),
+                   DoubleValue (-110.0), //  Old value -> DoubleValue (-99.0)
                    MakeDoubleAccessor (&WifiPhy::SetCcaMode1Threshold,
                                        &WifiPhy::GetCcaMode1Threshold),
                    MakeDoubleChecker<double> ())
@@ -201,13 +201,13 @@ WifiPhy::GetTypeId (void)
                    MakeUintegerChecker<uint8_t> ())
     .AddAttribute ("TxPowerEnd",
                    "Maximum available transmission level (dbm).",
-                   DoubleValue (16.0206),
+                   DoubleValue (20), //  Old value -> DoubleValue (16.0206), // Nadjib
                    MakeDoubleAccessor (&WifiPhy::SetTxPowerEnd,
                                        &WifiPhy::GetTxPowerEnd),
                    MakeDoubleChecker<double> ())
     .AddAttribute ("TxPowerStart",
                    "Minimum available transmission level (dbm).",
-                   DoubleValue (16.0206),
+                   DoubleValue (20), //  Old value -> DoubleValue (16.0206), // Nadjib
                    MakeDoubleAccessor (&WifiPhy::SetTxPowerStart,
                                        &WifiPhy::GetTxPowerStart),
                    MakeDoubleChecker<double> ())
@@ -2343,6 +2343,7 @@ void
 WifiPhy::NotifyMonitorSniffRx (Ptr<const Packet> packet, uint16_t channelFreqMhz, WifiTxVector txVector, MpduInfo aMpdu, SignalNoiseDbm signalNoise)
 {
   m_phyMonitorSniffRxTrace (packet, channelFreqMhz, txVector, aMpdu, signalNoise);
+    //std::cout << " I am in the phy " <<  signalNoise << std::endl;
 }
 
 void
@@ -2354,6 +2355,25 @@ WifiPhy::NotifyMonitorSniffTx (Ptr<const Packet> packet, uint16_t channelFreqMhz
 void
 WifiPhy::SendPacket (Ptr<const Packet> packet, WifiTxVector txVector, MpduType mpdutype)
 {
+
+   // print informations on the received signal power...
+  if (verbose) {
+    Ptr<NetDevice> txDevice = GetDevice();
+    Ptr<Node> txNode = txDevice->GetNode();
+    std::cout << "tx"
+              << ", time=" << Simulator::Now ()
+              << ", TX_MAC_id=" << txDevice->GetAddress() 
+              << ", TXid=" << txNode->GetId() 
+              << ", packet=" << packet->ToString() 
+              << ", mode=" << txVector.GetMode ().GetDataRate (txVector) 
+              << ", TxPowerDbm=" << GetPowerDbm (txVector.GetTxPowerLevel ()) 
+              << ", "
+              << std::endl; // Nadjib Achir added this line 
+          }
+
+  //", snr(dB)=" << RatioToDb (snrPer.snr) << ", per=" << snrPer.per << ", size=" << packet->GetSize () <<  " " << ", rxPowerW=" << rxPowerW <<std::endl; // Nadjib Achir added this line 
+
+
   NS_LOG_FUNCTION (this << packet << txVector.GetMode ()
                         << txVector.GetMode ().GetDataRate (txVector)
                         << txVector.GetPreambleType ()
@@ -2613,6 +2633,7 @@ WifiPhy::EndReceive (Ptr<Packet> packet, WifiPreamble preamble, MpduType mpdutyp
   snrPer = m_interference.CalculatePlcpPayloadSnrPer (event);
   m_interference.NotifyRxEnd ();
   m_currentEvent = 0;
+  //
 
   if (m_plcpSuccess == true)
     {
@@ -2621,7 +2642,26 @@ WifiPhy::EndReceive (Ptr<Packet> packet, WifiPreamble preamble, MpduType mpdutyp
 
       if (m_random->GetValue () > snrPer.per)
         {
-          NotifyRxEnd (packet);
+          if (false) 
+            {
+              // print informations on the received signal power...
+              Ptr<NetDevice> rxDevice = GetDevice();
+              Ptr<Node> rxNode = rxDevice->GetNode();
+              std::cout << "rx-OK"
+                        << ", time=" << Simulator::Now ()
+                        << ", RX_MAC_id=" << rxDevice->GetAddress() 
+                        << ", RXid=" << rxNode->GetId() 
+                        << ", packet_id=" << packet->ToString()
+                        << ", mode=" << (event->GetPayloadMode ().GetDataRate (event->GetTxVector ())) 
+                        << ", RxPowerDbm=" << WToDbm (event->GetRxPowerW()) 
+                        << ", snr(dB)=" << RatioToDb (snrPer.snr) 
+                        << ", per=" << snrPer.per 
+                        << ", size=" << packet->GetSize () 
+                        << ", RxPowerW=" << event->GetRxPowerW() 
+                        << ", GetEdThreshold=" << GetEdThreshold()
+                        << ", GetCcaMode1Threshold=" << GetCcaMode1Threshold()
+                        << std::endl; // Nadjib Achir added this line 
+            }          NotifyRxEnd (packet);
           SignalNoiseDbm signalNoise;
           signalNoise.signal = RatioToDb (event->GetRxPowerW ()) + 30;
           signalNoise.noise = RatioToDb (event->GetRxPowerW () / snrPer.snr) + 30;
@@ -2630,9 +2670,31 @@ WifiPhy::EndReceive (Ptr<Packet> packet, WifiPreamble preamble, MpduType mpdutyp
           aMpdu.mpduRefNumber = m_rxMpduReferenceNumber;
           NotifyMonitorSniffRx (packet, GetFrequency (), event->GetTxVector (), aMpdu, signalNoise);
           m_state->SwitchFromRxEndOk (packet, snrPer.snr, event->GetTxVector ());
+
         }
       else
         {
+          if (false) 
+            {
+              // print informations on the received signal power...
+              Ptr<NetDevice> rxDevice = GetDevice();
+              Ptr<Node> rxNode = rxDevice->GetNode();
+              std::cout << "rx-NOK"
+                        << ", time=" << Simulator::Now ()
+                        << ", RX_MAC_id=" << rxDevice->GetAddress() 
+                        << ", RXid=" << rxNode->GetId() 
+                        << ", packet_id=" << packet->ToString()
+                        << ", mode=" << (event->GetPayloadMode ().GetDataRate (event->GetTxVector ())) 
+                        << ", RxPowerDbm=" << WToDbm (event->GetRxPowerW()) 
+                        << ", snr(dB)=" << RatioToDb (snrPer.snr) 
+                        << ", per=" << snrPer.per 
+                        << ", size=" << packet->GetSize () 
+                        << ", RxPowerW=" << event->GetRxPowerW() 
+                        << ", GetEdThreshold=" << GetEdThreshold()
+                        << ", GetCcaMode1Threshold=" << GetCcaMode1Threshold()
+
+                        << std::endl; // Nadjib Achir added this line 
+            }          
           /* failure. */
           NotifyRxDrop (packet);
           m_state->SwitchFromRxEndError (packet, snrPer.snr);
@@ -3682,6 +3744,28 @@ WifiPhy::AbortCurrentReception ()
 void
 WifiPhy::StartRx (Ptr<Packet> packet, WifiTxVector txVector, MpduType mpdutype, double rxPowerW, Time rxDuration, Ptr<InterferenceHelper::Event> event)
 {
+ 
+          if (verbose) 
+            {
+              // print informations on the received signal power...
+              Ptr<NetDevice> rxDevice = GetDevice();
+              Ptr<Node> rxNode = rxDevice->GetNode();
+              std::cout << "StartRX"
+                        << ", time=" << Simulator::Now ()
+                        << ", RX_MAC_id=" << rxDevice->GetAddress() 
+                        << ", RXid=" << rxNode->GetId() 
+                        << ", packet_id=" << packet->ToString()
+                        << ", mode=" << (event->GetPayloadMode ().GetDataRate (event->GetTxVector ())) 
+                        //<< ", RxPowerDbm=" << WToDbm (event->GetRxPowerW()) 
+                        //<< ", snr(dB)=" << RatioToDb (snrPer.snr) 
+                        //<< ", per=" << snrPer.per 
+                        //<< ", size=" << packet->GetSize () 
+                        << ", RxPowerW=" << WToDbm (rxPowerW)
+                        //<< ", GetEdThreshold=" << GetEdThreshold()
+                        //<< ", GetCcaMode1Threshold=" << GetCcaMode1Threshold()
+                        << std::endl; // Nadjib Achir added this line 
+            }          
+  
   NS_LOG_FUNCTION (this << packet << txVector << +mpdutype << rxPowerW << rxDuration);
   if (rxPowerW > GetEdThresholdW ()) //checked here, no need to check in the payload reception (current implementation assumes constant rx power over the packet duration)
     {
