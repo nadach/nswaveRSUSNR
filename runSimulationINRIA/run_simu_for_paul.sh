@@ -1,7 +1,9 @@
 #!/bin/bash
 
-path_script="/Users/achir/Documents/coding/NS3/nswave/ns-3.28/"
+#path_script="/Users/achir/Documents/coding/NS3/nswave/ns-3.28/"
 current_path=$(pwd)
+path_script="$current_path/../ns-3.28/"
+#"/Users/achir/Documents/coding/NS3/nswave/ns-3.28/"
 command="./waf --run "\""wave-simple-80211p --senderPosition="
 
 # RSU positions
@@ -25,7 +27,7 @@ do
 	echo "==========================="
 	echo "node is at $node_position m"
 	echo "run simulation..."
-	output_file="results_$node_position.output"
+	output_file="results_$node_position.output.tr"
 	command_to_run="$command$node_position --RSU1Position=$RSU1 --RSU2Position=$RSU2 --RSU3Position=$RSU3"\"""
 	echo "command=$command_to_run"
 	eval "$command_to_run" | sed -e '1 d ; 2 d ; 3 d ; 4 d' > "$current_path/$output_file"
@@ -35,7 +37,11 @@ sleep 2
 
 # goto analysis folder 
 cd $current_path
-echo "Data analysis"
+echo "Data analysis..."
+echo "compiling java..."
+eval "javac com/achir/*.java"
+echo "analysis..."
+eval "java com.achir.Main $max $min $step /Users/achir/Documents/coding/NS3/nswave/runSimulationINRIA results_$RSU1-$RSU2-$RSU3.output.txt"
 
 # # prepare result file
 # results="results$RSU1-$RSU2-$RSU3.txt"
